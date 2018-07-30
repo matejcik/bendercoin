@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+simplejson = "*"
+attrs = "*"
+click = "*"
+requests = "*"
+termcolor = "*"
+
+[dev-packages]
+pylint = "<2.0.0"
+black = "*"
+ipython = "*"
+
+[requires]
+python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true
