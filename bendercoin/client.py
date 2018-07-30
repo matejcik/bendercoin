@@ -33,7 +33,13 @@ def print_tx(tx, account):
     else:
         color = "blue"
         out = f"weird transaction: {tx}"
-    cprint(out + msg, color=color)
+    cprint(out + msg, color=color, end=" ")
+
+    try:
+        tx.validate()
+        cprint("TX: OK", "blue")
+    except Exception:
+        cprint("TX: INVALID", "red", attrs=["bold"])
 
 
 def address(login):
