@@ -49,14 +49,6 @@ def transact(tx: Transaction):
     storage.save_transactions()
 
 
-def check_login(account, password):
-    if account == "555" and password == "fry":
-        return True
-    if account == "333" and password == "leela":
-        return True
-    return False
-
-
 @app.route("/")
 def hello():
     return "Welcome to BenderBank!!"
@@ -76,10 +68,6 @@ def balance(account):
 def send_tx():
     data = request.get_json(force=True)
     tx = Transaction.from_dict(data)
-
-    account = tx.from_account
-    if not check_login(account, data["password"]):
-        abort(401)  # 401 Unauthorized
 
     try:
         transact(tx)

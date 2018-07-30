@@ -4,6 +4,13 @@ import attr
 import ed25519
 from .util import _check, from_dict
 from .util import from_base64, to_base64
+import base58
+
+
+def address_from_pubkey(pub: ed25519.VerifyingKey):
+    key_hash = sha256(pub.to_bytes()).digest()
+    enc = base58.b58encode_check(key_hash[:8])
+    return enc.decode("ascii")
 
 
 @attr.s
@@ -20,14 +27,17 @@ class Transaction:
 
     def validate(self):
         # fmt: off
-        _check(self.from_account, "missing from_account")
-        _check(self.to_account, "missing to_account")
+        _check(base58.b58decode_check(self.from_account), "bad from_account")
+        _check(base58.b58decode_check(self.to_account), "bad to_account")
         _check(self.to_account != self.from_account, "don't send money to yourself")
         _check(isinstance(self.amount, int), "non-numeric amount")
         _check(self.amount > 0, "amount must be positive")
         _check(len(self.message) <= 140, "message too long")
         _check(self.pubkey and self.signature, "transaction isn't signed")
 
+        # verify address
+        addr = address_from_pubkey(self.pubkey)
+        _check(addr == self.from_account, "address does not match public key")
         # verify signature
         self.pubkey.verify(self.signature, self.hash())
         # fmt: on

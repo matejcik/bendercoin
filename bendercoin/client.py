@@ -3,13 +3,16 @@ import click
 import requests
 from termcolor import cprint
 from .util import print_json
-from .transaction import Transaction
+from .transaction import (
+    Transaction,
+    address_from_pubkey,
+)
 import ed25519
 
 # fmt: off
 LOGINS = {
-    "fry": ed25519.SigningKey("4f1156f60557ebb8d9eab50621b0b250a191b05965fcaf799786c0a38b0bd9e07d8e33b6e68b8e9c69cec242ba1a69ee60e9e70e06070e39f9770bbf96942d24", encoding="hex"),
-    "leela": ed25519.SigningKey("48248840dfc08040cdeabde3872947d2c04cfa36729cd7a613db33bd113814e1048423bbeda5e7a8f41a78dedc9a787fead95498058955aa091a996945b10289", encoding="hex"),
+    "fry": ed25519.SigningKey(b"4f1156f60557ebb8d9eab50621b0b250a191b05965fcaf799786c0a38b0bd9e07d8e33b6e68b8e9c69cec242ba1a69ee60e9e70e06070e39f9770bbf96942d24", encoding="hex"),
+    "leela": ed25519.SigningKey(b"48248840dfc08040cdeabde3872947d2c04cfa36729cd7a613db33bd113814e1048423bbeda5e7a8f41a78dedc9a787fead95498058955aa091a996945b10289", encoding="hex"),
 }
 # fmt: on
 
@@ -33,6 +36,12 @@ def print_tx(tx, account):
     cprint(out + msg, color=color)
 
 
+def address(login):
+    priv = LOGINS[login]
+    pub = priv.get_verifying_key()
+    return address_from_pubkey(pub)
+
+
 @click.group()
 def cli():
     pass
@@ -41,16 +50,16 @@ def cli():
 @cli.command()
 @click.argument("account")
 def balance(account):
-    num, _ = LOGINS[account]
-    r = requests.get(BANK_URL + "/balance/" + num)
+    addr = address(account)
+    r = requests.get(BANK_URL + "/balance/" + addr)
     print_json(r)
 
 
 @cli.command()
 @click.argument("account")
 def history(account):
-    num, _ = LOGINS[account]
-    r = requests.get(BANK_URL + "/history/" + num)
+    addr = address(account)
+    r = requests.get(BANK_URL + "/history/" + addr)
     try:
         j = r.json()
     except Exception as e:
@@ -60,7 +69,7 @@ def history(account):
 
     for item in j:
         tx = Transaction.from_dict(item)
-        print_tx(tx, num)
+        print_tx(tx, addr)
 
 
 @cli.command()
@@ -69,15 +78,17 @@ def history(account):
 @click.argument("amount", type=int)
 @click.option("-m", "--message", default="")
 def send(sender, recipient, amount, message):
-    from_acct, password = LOGINS[sender]
-    to_acct, _ = LOGINS[recipient]
-    data = dict(
-        from_account=from_acct,
-        to_account=to_acct,
+    priv = LOGINS[sender]
+    tx = Transaction(
+        from_account=address(sender),
+        to_account=address(recipient),
         amount=amount,
         message=message,
-        password=password,
     )
+    tx.sign(priv)
+    data = tx.to_dict()
+    print("signed transaction:")
+    print_json(data)
     r = requests.post(BANK_URL + "/send_tx", json=data)
     print_json(r)
 

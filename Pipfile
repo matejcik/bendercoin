@@ -11,6 +11,7 @@ click = "*"
 requests = "*"
 termcolor = "*"
 "ed25519" = "*"
+"base58" = "*"
 
 [dev-packages]
 pylint = "<2.0.0"
