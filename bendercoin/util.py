@@ -1,6 +1,7 @@
 from flask import json
 import attr
 import requests
+import base64
 
 
 def from_dict(cls, data):
@@ -26,9 +27,19 @@ def print_json(j):
         print("could not decode json:", e)
         print(j)
 
+
+def from_base64(s):
+    return base64.b64decode(s)
+
+
+def to_base64(s):
+    return base64.b64encode(s).decode("ascii")
+
+
 class TransactionJSONEncoder(json.JSONEncoder):
     def default(self, obj):  # pylint: disable=E0202
         from .transaction import Transaction
+
         if isinstance(obj, Transaction):
-            return attr.asdict(obj)
+            return obj.to_dict()
         return super().default(obj)

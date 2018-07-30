@@ -7,7 +7,7 @@ from flask import request, abort
 
 from .transaction import Transaction
 from .util import TransactionJSONEncoder
-from .util import from_dict, _check
+from .util import _check
 from . import storage
 
 app = Flask(__name__)
@@ -75,7 +75,7 @@ def balance(account):
 @app.route("/send_tx", methods=["POST"])
 def send_tx():
     data = request.get_json(force=True)
-    tx = from_dict(Transaction, data)
+    tx = Transaction.from_dict(data)
 
     account = tx.from_account
     if not check_login(account, data["password"]):

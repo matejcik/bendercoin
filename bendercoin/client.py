@@ -2,13 +2,16 @@ import json
 import click
 import requests
 from termcolor import cprint
-from .util import print_json, from_dict
+from .util import print_json
 from .transaction import Transaction
+import ed25519
 
+# fmt: off
 LOGINS = {
-    "fry": ("555", "fry"),
-    "leela": ("333", "leela"),
+    "fry": ed25519.SigningKey("4f1156f60557ebb8d9eab50621b0b250a191b05965fcaf799786c0a38b0bd9e07d8e33b6e68b8e9c69cec242ba1a69ee60e9e70e06070e39f9770bbf96942d24", encoding="hex"),
+    "leela": ed25519.SigningKey("48248840dfc08040cdeabde3872947d2c04cfa36729cd7a613db33bd113814e1048423bbeda5e7a8f41a78dedc9a787fead95498058955aa091a996945b10289", encoding="hex"),
 }
+# fmt: on
 
 BANK_URL = "http://localhost:5000"
 
@@ -55,8 +58,8 @@ def history(account):
         print(r.text)
         raise click.ClickException(e)
 
-    for item in r.json():
-        tx = from_dict(Transaction, item)
+    for item in j:
+        tx = Transaction.from_dict(item)
         print_tx(tx, num)
 
 

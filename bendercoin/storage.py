@@ -1,8 +1,8 @@
 from flask import json
-from .util import from_dict
 from .transaction import Transaction
 
 TRANSACTIONS = []
+
 
 def load_transactions():
     global TRANSACTIONS
@@ -10,7 +10,7 @@ def load_transactions():
     with open("transactions.json") as f:
         data = json.load(f)
     for item in data:
-        tx = from_dict(Transaction, item)
+        tx = Transaction.from_dict(item)
         TRANSACTIONS.append(tx)
 
     return TRANSACTIONS
