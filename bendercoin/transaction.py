@@ -13,40 +13,74 @@ def address_from_pubkey(pub: ed25519.VerifyingKey):
     return enc.decode("ascii")
 
 
+@attr.s(frozen=True)
+class TxInput:
+    hash = attr.ib()
+    index = attr.ib()
+    amount = attr.ib()
+
+
+@attr.s(frozen=True)
+class TxOutput:
+    address = attr.ib()
+    amount = attr.ib()
+
+
 @attr.s
 class Transaction:
-    from_account = attr.ib()
-    to_account = attr.ib()
-    amount = attr.ib()
+    inputs = attr.ib()
+    outputs = attr.ib()
     message = attr.ib()
 
+    from_address = attr.ib(default=None)
+    to_addresses = attr.ib(default=None)
     datetime = attr.ib(default=None)
 
     pubkey = attr.ib(default=None)
     signature = attr.ib(default=None)
 
+    def total_in(self):
+        return sum(i.amount for i in self.inputs)
+
+    def total_out(self):
+        return sum(o.amount for o in self.inputs)
+
     def validate(self):
         # fmt: off
-        _check(base58.b58decode_check(self.from_account), "bad from_account")
-        _check(base58.b58decode_check(self.to_account), "bad to_account")
-        _check(self.to_account != self.from_account, "don't send money to yourself")
-        _check(isinstance(self.amount, int), "non-numeric amount")
-        _check(self.amount > 0, "amount must be positive")
+        _check(self.inputs, "no inputs")
+        _check(self.outputs, "no outputs")
+
+        for i in self.inputs:
+            _check(i.hash, "missing hash")
+            _check(isinstance(i.index, int), "bad index")
+            _check(i.index >= 0, "index must not be negative")
+            _check(isinstance(i.amount, int), "bad amount")
+            _check(i.amount > 0, "amount must be positive")
+
+        in_hashes = set(i.hash for i in self.inputs)
+        _check(len(in_hashes) == len(self.inputs), "input txes must not repeat")
+
+        for o in self.outputs:
+            _check(o.address, "missing address")
+            _check(isinstance(o.amount, int), "bad output amount")
+            _check(o.amount > 0, "amount must be positive")
+
+        out_addrs = set(o.address for o in self.outputs)
+        _check(len(out_addrs) == len(self.outputs), "output addreses must not repeat")
+
+        _check(self.total_in() == self.total_out(), "mismatched in/out")
+
         _check(len(self.message) <= 140, "message too long")
         _check(self.pubkey and self.signature, "transaction isn't signed")
 
-        # verify address
-        addr = address_from_pubkey(self.pubkey)
-        _check(addr == self.from_account, "address does not match public key")
         # verify signature
         self.pubkey.verify(self.signature, self.hash())
         # fmt: on
 
     def hash(self):
         hashables = dict(
-            from_account=self.from_account,
-            to_account=self.to_account,
-            amount=self.amount,
+            inputs=self.inputs,
+            outputs=self.outputs,
             message=self.message,
         )
         data = json.dumps(hashables, sort_keys=True)
@@ -66,6 +100,10 @@ class Transaction:
             tx.pubkey = ed25519.VerifyingKey(decoded)
         if tx.signature:
             tx.signature = from_base64(tx.signature)
+        for n, i in enumerate(tx.inputs):
+            tx.inputs[n] = TxInput(**i)
+        for n, o in enumerate(tx.outputs):
+            tx.outputs[n] = TxOutput(**o)
         return tx
 
     def to_dict(self):
@@ -75,4 +113,8 @@ class Transaction:
             d["pubkey"] = to_base64(b)
         if self.signature:
             d["signature"] = to_base64(self.signature)
+        ins = [attr.asdict(i) for i in self.inputs]
+        outs = [attr.asdict(o) for o in self.outputs]
+        d["inputs"] = ins
+        d["outputs"] = outs
         return d
