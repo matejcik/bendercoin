@@ -1,4 +1,5 @@
 import json
+import sys
 import click
 import requests
 from termcolor import cprint
@@ -96,6 +97,14 @@ def send(sender, recipient, amount, message):
     print("signed transaction:")
     print_json(data)
     r = requests.post(BANK_URL + "/send_tx", json=data)
+    print_json(r)
+
+
+@cli.command()
+@click.argument("file", type=click.File("r"), default=sys.stdin)
+def send_raw(file):
+    j = json.load(file)
+    r = requests.post(BANK_URL + "/send_tx", json=j)
     print_json(r)
 
 
