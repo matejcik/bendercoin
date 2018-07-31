@@ -8,7 +8,12 @@ import base58
 
 
 def address_from_pubkey(pub: ed25519.VerifyingKey):
-    key_hash = sha256(pub.to_bytes()).digest()
+    if isinstance(pub, ed25519.VerifyingKey):
+        pub = pub.to_bytes()
+    elif isinstance(pub, str):
+        pub = from_base64(pub)
+
+    key_hash = sha256(pub).digest()
     enc = base58.b58encode_check(key_hash[:8])
     return enc.decode("ascii")
 
@@ -75,6 +80,22 @@ class Transaction:
 
         # verify signature
         self.pubkey.verify(self.signature, self.hash())
+        # fmt: on
+
+    def validate_previous(self, txes):
+        addr = address_from_pubkey(self.pubkey)
+        # fmt: off
+        for i in self.inputs:
+            _check(i.hash in txes, "previous tx missing")
+            tx = txes[i.hash]
+            txhash = to_base64(tx.hash())
+            _check(txhash == i.hash, "non-matching tx hash")
+            # validate previous, raises exception
+            tx.validate()
+            _check(i.index < len(tx.outputs), "bad output index")
+            out = tx.outputs[i.index]
+            _check(out.address == addr, "stealing someone else's output")
+            _check(out.amount == i.amount, "input amount doesn't match output amount")
         # fmt: on
 
     def hash(self):
