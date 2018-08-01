@@ -115,3 +115,11 @@ def send_tx():
 def reload():
     load_transactions()
     return jsonify(status="ok")
+
+
+@app.route("/tx/<hash>")
+def get_tx(hash):
+    try:
+        return jsonify(TX_BY_HASH[hash])
+    except Exception as e:
+        return jsonify(status="err", error=str(e))

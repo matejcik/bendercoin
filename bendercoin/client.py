@@ -52,6 +52,10 @@ def print_tx(tx, account):
 
     try:
         tx.validate()
+        prev_tx = {}
+        for inp in tx.inputs:
+            prev_tx[inp.hash] = get_tx(inp.hash)
+        tx.validate_previous(prev_tx)
         cprint("TX: OK", "blue")
     except Exception:
         cprint("TX: INVALID", "red", attrs=["bold"])
@@ -75,6 +79,18 @@ def balance(account):
     addr = address(account)
     r = requests.get(BANK_URL + "/balance/" + addr)
     print_json(r)
+
+
+def get_tx(hash):
+    r = requests.get(BANK_URL + "/tx/" + hash)
+    try:
+        j = r.json()
+    except Exception as e:
+        print("failed to decode json")
+        print(r.text)
+        raise click.ClickException(e)
+
+    return Transaction.from_dict(j)
 
 
 def get_history(addr):
