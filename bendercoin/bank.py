@@ -81,7 +81,9 @@ def transact(tx: Transaction):
             spent not in SPENT,
             "this coinbase is already spent",
         )
-        tx.validate_coinbase(BLOCKS[tx.coinbase])
+        tx.validate_coinbase(
+            storage.BLOCKS[tx.coinbase]
+        )
 
     else:
         tx.validate_previous(TX_BY_HASH)
