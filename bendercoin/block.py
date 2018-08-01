@@ -1,19 +1,10 @@
 from hashlib import sha256
 import attr
-from .util import (
-    _check,
-    from_base64,
-    to_base64,
-    from_dict,
-)
+from .util import _check, from_base64, to_base64, from_dict
 import ed25519
 import os
 import json
-from .transaction import (
-    Transaction,
-    TxOutput,
-    address_from_pubkey,
-)
+from .transaction import Transaction, TxOutput, address_from_pubkey
 
 
 DIFFICULTY = 2
@@ -55,9 +46,7 @@ class BlockHeader:
         while True:
             self.nonce = os.urandom(64)
             h = self.hash()
-            if all(
-                h[i] == 0 for i in range(difficulty)
-            ):
+            if all(h[i] == 0 for i in range(difficulty)):
                 self.mined = True
                 break
 
@@ -115,10 +104,7 @@ class Block:
         addr = address_from_pubkey(pubkey)
         out = TxOutput(address=addr, amount=reward)
         tx = Transaction(
-            inputs=[],
-            outputs=[out],
-            message=f"coinbase {num}",
-            coinbase=num,
+            inputs=[], outputs=[out], message=f"coinbase {num}", coinbase=num
         )
         tx.sign(privkey)
         self.coinbase = tx
@@ -131,9 +117,7 @@ class Block:
         all_hashes = sha256(result).digest()
         return to_base64(all_hashes)
 
-    def mine(
-        self, privkey, prev_hdr, difficulty=DIFFICULTY
-    ):
+    def mine(self, privkey, prev_hdr, difficulty=DIFFICULTY):
         header = self.make_header(privkey, prev_hdr)
         header.mine(difficulty)
         header.sign(privkey)
@@ -141,21 +125,14 @@ class Block:
     def to_dict(self):
         txes = [self.coinbase] + self.transactions
         d = {}
-        d["transactions"] = [
-            tx.to_dict() for tx in txes
-        ]
+        d["transactions"] = [tx.to_dict() for tx in txes]
         d["header"] = self.header.to_dict()
         return d
 
     @classmethod
     def from_dict(cls, d):
-        transactions = [
-            Transaction.from_dict(tx)
-            for tx in d["transactions"]
-        ]
+        transactions = [Transaction.from_dict(tx) for tx in d["transactions"]]
         header = BlockHeader.from_dict(d["header"])
         return cls(
-            coinbase=transactions[0],
-            transactions=transactions[1:],
-            header=header,
+            coinbase=transactions[0], transactions=transactions[1:], header=header
         )

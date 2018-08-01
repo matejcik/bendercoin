@@ -17,8 +17,7 @@ app.json_encoder = TransactionJSONEncoder
 storage.load_transactions()
 
 BENDER_KEY = ed25519.SigningKey(
-    b"6db72cfc2b48ab152b5b25a0e8396403b4b10f803fb09c61cac10a7955bbb28f",
-    encoding="hex",
+    b"6db72cfc2b48ab152b5b25a0e8396403b4b10f803fb09c61cac10a7955bbb28f", encoding="hex"
 )
 
 TX_BY_HASH = {}
@@ -52,10 +51,7 @@ load_transactions()
 def get_history(account):
     hist = []
     for tx in TX_BY_HASH.values():
-        if (
-            tx.from_address() == account
-            or account in tx.to_addresses()
-        ):
+        if tx.from_address() == account or account in tx.to_addresses():
             hist.append(tx)
     return hist
 
@@ -77,22 +73,14 @@ def transact(tx: Transaction):
 
     if tx.coinbase is not None:
         spent = (tx.coinbase, addr)
-        _check(
-            spent not in SPENT,
-            "this coinbase is already spent",
-        )
-        tx.validate_coinbase(
-            storage.BLOCKS[tx.coinbase]
-        )
+        _check(spent not in SPENT, "this coinbase is already spent")
+        tx.validate_coinbase(storage.BLOCKS[tx.coinbase])
 
     else:
         tx.validate_previous(TX_BY_HASH)
         for inp in tx.inputs:
             spent = (inp.hash, addr)
-            _check(
-                spent not in SPENT,
-                "this hash is already spent",
-            )
+            _check(spent not in SPENT, "this hash is already spent")
 
     tx.datetime = datetime.now()
     CURRENT_BLOCK.transactions.append(tx)

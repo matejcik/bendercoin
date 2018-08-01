@@ -5,12 +5,7 @@ import requests
 from termcolor import cprint
 from .util import print_json, to_base64
 from . import bank
-from .transaction import (
-    Transaction,
-    TxInput,
-    TxOutput,
-    address_from_pubkey,
-)
+from .transaction import Transaction, TxInput, TxOutput, address_from_pubkey
 import ed25519
 
 # fmt: off
@@ -32,10 +27,7 @@ def print_tx(tx, account):
     else:
         print()
 
-    if (
-        tx.from_address() == account
-        and tx.coinbase is None
-    ):
+    if tx.from_address() == account and tx.coinbase is None:
         for out in tx.outputs:
             if out.address == account:
                 continue
@@ -124,11 +116,7 @@ def get_unspent(addr):
             spent.add(inp)
         for idx, out in enumerate(tx.outputs):
             if out.address == addr:
-                inp = TxInput(
-                    hash=hash,
-                    index=idx,
-                    amount=out.amount,
-                )
+                inp = TxInput(hash=hash, index=idx, amount=out.amount)
                 possible.add(inp)
 
     return possible - spent
@@ -164,17 +152,11 @@ def send(sender, recipient, amount, message):
     if total < amount:
         raise click.ClickException("not enough money")
 
-    output_send = TxOutput(
-        amount=amount, address=address(recipient)
-    )
-    output_change = TxOutput(
-        amount=total - amount, address=address(sender)
-    )
+    output_send = TxOutput(amount=amount, address=address(recipient))
+    output_change = TxOutput(amount=total - amount, address=address(sender))
 
     tx = Transaction(
-        message=message,
-        inputs=inputs,
-        outputs=[output_send, output_change],
+        message=message, inputs=inputs, outputs=[output_send, output_change]
     )
     tx.sign(priv)
     data = tx.to_dict()
@@ -185,9 +167,7 @@ def send(sender, recipient, amount, message):
 
 
 @cli.command()
-@click.argument(
-    "file", type=click.File("r"), default=sys.stdin
-)
+@click.argument("file", type=click.File("r"), default=sys.stdin)
 def send_raw(file):
     j = json.load(file)
     r = requests.post(BANK_URL + "/send_tx", json=j)

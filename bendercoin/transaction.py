@@ -127,11 +127,7 @@ class Transaction:
     def hash(self):
         inp = [attr.asdict(i) for i in self.inputs]
         out = [attr.asdict(o) for o in self.outputs]
-        hashables = dict(
-            inputs=inp,
-            outputs=out,
-            message=self.message,
-        )
+        hashables = dict(inputs=inp, outputs=out, message=self.message)
         data = json.dumps(hashables, sort_keys=True)
         return sha256(data.encode("utf-8")).digest()
 
