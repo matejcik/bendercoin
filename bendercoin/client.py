@@ -4,6 +4,7 @@ import click
 import requests
 from termcolor import cprint
 from .util import print_json, to_base64
+from . import bank
 from .transaction import (
     Transaction,
     TxInput,
@@ -16,6 +17,7 @@ import ed25519
 LOGINS = {
     "fry": ed25519.SigningKey(b"4f1156f60557ebb8d9eab50621b0b250a191b05965fcaf799786c0a38b0bd9e07d8e33b6e68b8e9c69cec242ba1a69ee60e9e70e06070e39f9770bbf96942d24", encoding="hex"),
     "leela": ed25519.SigningKey(b"48248840dfc08040cdeabde3872947d2c04cfa36729cd7a613db33bd113814e1048423bbeda5e7a8f41a78dedc9a787fead95498058955aa091a996945b10289", encoding="hex"),
+    "bender": bank.BENDER_KEY,
 }
 # fmt: on
 
@@ -30,7 +32,10 @@ def print_tx(tx, account):
     else:
         print()
 
-    if tx.from_address() == account:
+    if (
+        tx.from_address() == account
+        and tx.coinbase is None
+    ):
         for out in tx.outputs:
             if out.address == account:
                 continue
@@ -57,8 +62,9 @@ def print_tx(tx, account):
             prev_tx[inp.hash] = get_tx(inp.hash)
         tx.validate_previous(prev_tx)
         cprint("TX: OK", "blue")
-    except Exception:
+    except Exception as e:
         cprint("TX: INVALID", "red", attrs=["bold"])
+        print(e)
     print()
 
 
@@ -191,6 +197,12 @@ def send_raw(file):
 @cli.command()
 def reload():
     r = requests.get(BANK_URL + "/reload")
+    print_json(r)
+
+
+@cli.command()
+def make_block():
+    r = requests.get(BANK_URL + "/make_block")
     print_json(r)
 
 

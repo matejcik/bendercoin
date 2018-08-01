@@ -42,7 +42,10 @@ def to_base64(s):
 class TransactionJSONEncoder(json.JSONEncoder):
     def default(self, obj):  # pylint: disable=E0202
         from .transaction import Transaction
+        from .block import Block
 
         if isinstance(obj, Transaction):
+            return obj.to_dict()
+        elif isinstance(obj, Block):
             return obj.to_dict()
         return super().default(obj)

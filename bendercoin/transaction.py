@@ -36,6 +36,7 @@ class Transaction:
     inputs = attr.ib()
     outputs = attr.ib()
     message = attr.ib()
+    coinbase = attr.ib(default=None)
 
     datetime = attr.ib(default=None)
 
@@ -68,8 +69,11 @@ class Transaction:
 
     def validate(self):
         # fmt: off
-        # XXX
-        # _check(self.inputs, "no inputs")
+        if self.coinbase is None:
+            _check(self.inputs, "no inputs")
+        else:
+            _check(not self.inputs, "inputs in coinbase")
+
         _check(self.outputs, "no outputs")
 
         for i in self.inputs:
@@ -90,7 +94,8 @@ class Transaction:
         out_addrs = set(o.address for o in self.outputs)
         _check(len(out_addrs) == len(self.outputs), "output addreses must not repeat")
 
-        _check(self.total_in() == self.total_out(), "mismatched in/out")
+        if self.coinbase is None:
+            _check(self.total_in() == self.total_out(), "mismatched in/out")
 
         _check(len(self.message) <= 140, "message too long")
         _check(self.pubkey and self.signature, "transaction isn't signed")
@@ -108,10 +113,6 @@ class Transaction:
             txhash = to_base64(tx.hash())
             _check(txhash == i.hash, "non-matching tx hash")
 
-            if not tx.inputs:
-                # special tx, leave it
-                continue
-
             # validate previous, raises exception
             tx.validate()
             _check(i.index < len(tx.outputs), "bad output index")
@@ -119,6 +120,9 @@ class Transaction:
             _check(out.address == addr, "stealing someone else's output")
             _check(out.amount == i.amount, "input amount doesn't match output amount")
         # fmt: on
+
+    def validate_coinbase(self, block):
+        pass
 
     def hash(self):
         inp = [attr.asdict(i) for i in self.inputs]

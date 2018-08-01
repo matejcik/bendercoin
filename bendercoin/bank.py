@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import ed25519
 import attr
 from flask import Flask
 from flask import json, jsonify
@@ -9,12 +10,19 @@ from .transaction import Transaction
 from .util import TransactionJSONEncoder
 from .util import _check, to_base64
 from . import storage
+from .block import Block
 
 app = Flask(__name__)
 app.json_encoder = TransactionJSONEncoder
 storage.load_transactions()
 
+BENDER_KEY = ed25519.SigningKey(
+    b"6db72cfc2b48ab152b5b25a0e8396403b4b10f803fb09c61cac10a7955bbb28f",
+    encoding="hex",
+)
+
 TX_BY_HASH = {}
+CURRENT_BLOCK = Block(transactions=[])
 SPENT = set()
 
 
@@ -23,7 +31,13 @@ def load_transactions():
     storage.load_transactions()
     TX_BY_HASH = {}
     SPENT = set()
-    for tx in storage.TRANSACTIONS:
+    blocks = list(storage.BLOCKS.values())
+    all_txs = []
+    for bl in blocks:
+        all_txs.append(bl.coinbase)
+        all_txs.extend(bl.transactions)
+    all_txs.extend(CURRENT_BLOCK.transactions)
+    for tx in all_txs:
         h = to_base64(tx.hash())
         addr = tx.from_address()
         TX_BY_HASH[h] = tx
@@ -37,7 +51,7 @@ load_transactions()
 
 def get_history(account):
     hist = []
-    for tx in storage.TRANSACTIONS:
+    for tx in TX_BY_HASH.values():
         if (
             tx.from_address() == account
             or account in tx.to_addresses()
@@ -60,23 +74,26 @@ def get_balance(account):
 def transact(tx: Transaction):
     tx.validate()
     addr = tx.from_address()
-    prev_hashes = {}
-    for inp in tx.inputs:
-        _check(
-            inp.hash in TX_BY_HASH,
-            "unknown previous hash",
-        )
-        spent = (inp.hash, addr)
+
+    if tx.coinbase is not None:
+        spent = (tx.coinbase, addr)
         _check(
             spent not in SPENT,
-            "this hash is already spent",
+            "this coinbase is already spent",
         )
-        prev_hashes[inp.hash] = TX_BY_HASH[inp.hash]
-    tx.validate_previous(prev_hashes)
+        tx.validate_coinbase(BLOCKS[tx.coinbase])
+
+    else:
+        tx.validate_previous(TX_BY_HASH)
+        for inp in tx.inputs:
+            spent = (inp.hash, addr)
+            _check(
+                spent not in SPENT,
+                "this hash is already spent",
+            )
 
     tx.datetime = datetime.now()
-    storage.TRANSACTIONS.append(tx)
-    storage.save_transactions()
+    CURRENT_BLOCK.transactions.append(tx)
 
     TX_BY_HASH[to_base64(tx.hash())] = tx
     for inp in tx.inputs:
@@ -123,3 +140,22 @@ def get_tx(hash):
         return jsonify(TX_BY_HASH[hash])
     except Exception as e:
         return jsonify(status="err", error=str(e))
+
+
+@app.route("/make_block")
+def make_block():
+    global CURRENT_BLOCK
+    if storage.BLOCKS:
+        all_blocks = list(storage.BLOCKS.values())
+        prev_block = all_blocks[-1]
+        prev_hdr = prev_block.header
+    else:
+        prev_hdr = None
+
+    CURRENT_BLOCK.mine(BENDER_KEY, prev_hdr)
+    hdr = CURRENT_BLOCK.header
+    storage.BLOCKS[hdr.num] = CURRENT_BLOCK
+    CURRENT_BLOCK = Block(transactions=[])
+    storage.save_transactions()
+    load_transactions()
+    return jsonify(status="ok")

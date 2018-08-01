@@ -1,22 +1,24 @@
 from flask import json
 from .transaction import Transaction
+from .block import Block
 
-TRANSACTIONS = []
+BLOCKS = {}
 
 
 def load_transactions():
-    global TRANSACTIONS
-    TRANSACTIONS = []
+    global BLOCKS
+    BLOCKS = {}
     with open("transactions.json") as f:
         data = json.load(f)
-    for item in data:
-        tx = Transaction.from_dict(item)
-        TRANSACTIONS.append(tx)
+    for key, val in data.items():
+        bl = Block.from_dict(val)
+        num = bl.header.num
+        BLOCKS[num] = bl
 
-    return TRANSACTIONS
+    return BLOCKS
 
 
 def save_transactions():
-    global TRANSACTIONS
+    global BLOCKS
     with open("transactions.json", "w") as f:
-        json.dump(TRANSACTIONS, f, indent=4)
+        json.dump(BLOCKS, f, indent=4)
