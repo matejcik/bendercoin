@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 flask = "*"
-simplejson = "*"
 attrs = "*"
 click = "*"
 requests = "*"
