@@ -29,11 +29,14 @@ def print_json(j):
 
 
 def from_base64(s):
-    return base64.b64decode(s)
+    pad_size = (4 - len(s)) % 4
+    padded = s.rstrip("=") + "=" * pad_size
+    return base64.urlsafe_b64decode(padded)
 
 
 def to_base64(s):
-    return base64.b64encode(s).decode("ascii")
+    enc = base64.urlsafe_b64encode(s)
+    return enc.decode("ascii").rstrip("=")
 
 
 class TransactionJSONEncoder(json.JSONEncoder):

@@ -1,56 +1,19 @@
 [
     {
-        "amount": 1000,
         "datetime": "Mon, 30 Jul 2018 19:55:11 GMT",
-        "from_account": "0",
-        "message": "",
+        "inputs": [],
+        "message": "nejake penize do zacatku",
+        "outputs": [
+            {
+                "address": "4y7EcMTN3RrXzzFX9",
+                "amount": 1000
+            },
+            {
+                "address": "5a4fetPjpMjoK5yid",
+                "amount": 1000
+            }
+        ],
         "pubkey": null,
-        "signature": null,
-        "to_account": "4y7EcMTN3RrXzzFX9"
-    },
-    {
-        "amount": 1000,
-        "datetime": "Mon, 30 Jul 2018 19:55:11 GMT",
-        "from_account": "0",
-        "message": "",
-        "pubkey": null,
-        "signature": null,
-        "to_account": "5a4fetPjpMjoK5yid"
-    },
-    {
-        "amount": 500,
-        "datetime": "Tue, 31 Jul 2018 12:20:30 GMT",
-        "from_account": "4y7EcMTN3RrXzzFX9",
-        "message": "diky za vcerejsi noc",
-        "pubkey": "fY4ztuaLjpxpzsJCuhpp7mDp5w4GBw45+XcLv5aULSQ=",
-        "signature": "U+g5sPGL3KAzCVeFJHU+bb10ze1zrAhvgRS27ivdnGehzxH3tgUzOmyOrJMGRQ2cdHFyJl8gpUBEsx+7mTTzCA==",
-        "to_account": "5a4fetPjpMjoK5yid"
-    },
-    {
-        "amount": 15,
-        "datetime": "Tue, 31 Jul 2018 12:20:46 GMT",
-        "from_account": "5a4fetPjpMjoK5yid",
-        "message": "male pivo",
-        "pubkey": "BIQju+2l56j0Gnje3Jp4f+rZVJgFiVWqCRqZaUWxAok=",
-        "signature": "EvjIb8djpkfiIBa9c/MmUT9M6biIhPALt4oFkCzBugelScboKmLqh4YF9IPHyiPyDP0gSH/JnZvvf/42o1CTAg==",
-        "to_account": "4y7EcMTN3RrXzzFX9"
-    },
-    {
-        "amount": 500,
-        "datetime": "Tue, 31 Jul 2018 12:20:55 GMT",
-        "from_account": "5a4fetPjpMjoK5yid",
-        "message": "<3",
-        "pubkey": "BIQju+2l56j0Gnje3Jp4f+rZVJgFiVWqCRqZaUWxAok=",
-        "signature": "Q1kYhn5QDGIWxaVhFVV//o+KrzeCP9NHwC1SKenF3V/mDIbCJmki1SytfyJrnA45Zt2yijVOrtKoC/AprgUDBQ==",
-        "to_account": "4y7EcMTN3RrXzzFX9"
-    },
-    {
-        "amount": 30,
-        "datetime": "Tue, 31 Jul 2018 12:21:23 GMT",
-        "from_account": "4y7EcMTN3RrXzzFX9",
-        "message": "",
-        "pubkey": "fY4ztuaLjpxpzsJCuhpp7mDp5w4GBw45+XcLv5aULSQ=",
-        "signature": "FcE8q1hlmyNd2JtTCkkLIHi9mNrmHcb1s40BVMqtOVApQcHnBO5PPfoVOpIlhlPmi16LMkRcPv23dOg0Nz0XBg==",
-        "to_account": "5a4fetPjpMjoK5yid"
+        "signature": null
     }
 ]

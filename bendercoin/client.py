@@ -3,9 +3,11 @@ import sys
 import click
 import requests
 from termcolor import cprint
-from .util import print_json
+from .util import print_json, to_base64
 from .transaction import (
     Transaction,
+    TxInput,
+    TxOutput,
     address_from_pubkey,
 )
 import ed25519
@@ -21,26 +23,39 @@ BANK_URL = "http://localhost:5000"
 
 
 def print_tx(tx, account):
+    h = to_base64(tx.hash())
+    cprint(f"tx {h}:", color="blue", end="")
     if tx.message:
-        msg = f" (message: {tx.message})"
+        print(" " + tx.message)
     else:
-        msg = ""
-    if tx.from_account == account:
-        color = "red"
-        out = f"-{tx.amount} >> {tx.to_account}"
-    elif tx.to_account == account:
-        color = "green"
-        out = f"+{tx.amount} << {tx.from_account}"
+        print()
+
+    if tx.from_address() == account:
+        for out in tx.outputs:
+            if out.address == account:
+                continue
+            txt = f"-{out.amount} >> {out.address}"
+            cprint(txt, color="red")
+
+    elif account in tx.to_addresses():
+        amount = tx.received(account)
+        addr = tx.from_address()
+        txt = f"+{amount} << {addr}"
+        cprint(txt, color="green")
+
     else:
-        color = "blue"
-        out = f"weird transaction: {tx}"
-    cprint(out + msg, color=color, end=" ")
+        from_account = tx.from_address()
+        amount = tx.total_in()
+        print(f"from {from_account}: {amount})")
+        for o in tx.outputs:
+            print(f"to {o.address}: {o.amount})")
 
     try:
         tx.validate()
         cprint("TX: OK", "blue")
     except Exception:
         cprint("TX: INVALID", "red", attrs=["bold"])
+    print()
 
 
 def address(login):
@@ -62,10 +77,7 @@ def balance(account):
     print_json(r)
 
 
-@cli.command()
-@click.argument("account")
-def history(account):
-    addr = address(account)
+def get_history(addr):
     r = requests.get(BANK_URL + "/history/" + addr)
     try:
         j = r.json()
@@ -74,8 +86,37 @@ def history(account):
         print(r.text)
         raise click.ClickException(e)
 
+    res = []
     for item in j:
-        tx = Transaction.from_dict(item)
+        res.append(Transaction.from_dict(item))
+    return res
+
+
+def get_unspent(addr):
+    hist = get_history(addr)
+    possible = set()
+    spent = set()
+    for tx in hist:
+        hash = to_base64(tx.hash())
+        for inp in tx.inputs:
+            spent.add(inp)
+        for idx, out in enumerate(tx.outputs):
+            if out.address == addr:
+                inp = TxInput(
+                    hash=hash,
+                    index=idx,
+                    amount=out.amount,
+                )
+                possible.add(inp)
+
+    return possible - spent
+
+
+@cli.command()
+@click.argument("account")
+def history(account):
+    addr = address(account)
+    for tx in get_history(addr):
         print_tx(tx, addr)
 
 
@@ -85,12 +126,33 @@ def history(account):
 @click.argument("amount", type=int)
 @click.option("-m", "--message", default="")
 def send(sender, recipient, amount, message):
+    if amount <= 0:
+        raise click.ClickException("bad amount")
+
     priv = LOGINS[sender]
+    unspent = get_unspent(address(sender))
+    inputs = []
+    total = 0
+    for inp in unspent:
+        inputs.append(inp)
+        total += inp.amount
+        if total >= amount:
+            break
+
+    if total < amount:
+        raise click.ClickException("not enough money")
+
+    output_send = TxOutput(
+        amount=amount, address=address(recipient)
+    )
+    output_change = TxOutput(
+        amount=total - amount, address=address(sender)
+    )
+
     tx = Transaction(
-        from_account=address(sender),
-        to_account=address(recipient),
-        amount=amount,
         message=message,
+        inputs=inputs,
+        outputs=[output_send, output_change],
     )
     tx.sign(priv)
     data = tx.to_dict()
@@ -101,7 +163,9 @@ def send(sender, recipient, amount, message):
 
 
 @cli.command()
-@click.argument("file", type=click.File("r"), default=sys.stdin)
+@click.argument(
+    "file", type=click.File("r"), default=sys.stdin
+)
 def send_raw(file):
     j = json.load(file)
     r = requests.post(BANK_URL + "/send_tx", json=j)

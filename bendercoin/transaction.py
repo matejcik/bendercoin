@@ -37,12 +37,19 @@ class Transaction:
     outputs = attr.ib()
     message = attr.ib()
 
-    from_address = attr.ib(default=None)
-    to_addresses = attr.ib(default=None)
     datetime = attr.ib(default=None)
 
     pubkey = attr.ib(default=None)
     signature = attr.ib(default=None)
+
+    def from_address(self):
+        if self.pubkey:
+            return address_from_pubkey(self.pubkey)
+        else:
+            return None
+
+    def to_addresses(self):
+        return [o.address for o in self.outputs]
 
     def total_in(self):
         return sum(i.amount for i in self.inputs)
@@ -50,9 +57,19 @@ class Transaction:
     def total_out(self):
         return sum(o.amount for o in self.inputs)
 
+    def received(self, addr):
+        for o in self.outputs:
+            if o.address == addr:
+                return o.amount
+
+    def sent(self):
+        change = self.received(self.from_address())
+        return self.total_out() - change
+
     def validate(self):
         # fmt: off
-        _check(self.inputs, "no inputs")
+        # XXX
+        # _check(self.inputs, "no inputs")
         _check(self.outputs, "no outputs")
 
         for i in self.inputs:
@@ -90,6 +107,11 @@ class Transaction:
             tx = txes[i.hash]
             txhash = to_base64(tx.hash())
             _check(txhash == i.hash, "non-matching tx hash")
+
+            if not tx.inputs:
+                # special tx, leave it
+                continue
+
             # validate previous, raises exception
             tx.validate()
             _check(i.index < len(tx.outputs), "bad output index")
@@ -99,9 +121,11 @@ class Transaction:
         # fmt: on
 
     def hash(self):
+        inp = [attr.asdict(i) for i in self.inputs]
+        out = [attr.asdict(o) for o in self.outputs]
         hashables = dict(
-            inputs=self.inputs,
-            outputs=self.outputs,
+            inputs=inp,
+            outputs=out,
             message=self.message,
         )
         data = json.dumps(hashables, sort_keys=True)
