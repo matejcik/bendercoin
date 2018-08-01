@@ -153,11 +153,13 @@ def send(sender, recipient, amount, message):
         raise click.ClickException("not enough money")
 
     output_send = TxOutput(amount=amount, address=address(recipient))
-    output_change = TxOutput(amount=total - amount, address=address(sender))
+    if amount < total:
+        output_change = TxOutput(amount=total - amount, address=address(sender))
+        outputs = [output_send, output_change]
+    else:
+        outputs = [output_send]
 
-    tx = Transaction(
-        message=message, inputs=inputs, outputs=[output_send, output_change]
-    )
+    tx = Transaction(message=message, inputs=inputs, outputs=outputs)
     tx.sign(priv)
     data = tx.to_dict()
     print("signed transaction:")
